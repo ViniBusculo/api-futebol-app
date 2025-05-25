@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>Últimos Jogos</title>
+  <style>
+    body { font-family: sans-serif; margin: 2em; }
+    button { padding: 0.5em 1em; margin-bottom: 1em; }
+    table { border-collapse: collapse; width: 100%; }
+    th, td { border: 1px solid #ccc; padding: 0.5em; text-align: left; }
+    th { background-color: #f2f2f2; }
+    img { height: 20px; vertical-align: middle; margin-right: 5px; }
+    .cartoes { font-size: 0.9em; color: #444; margin: 0.5em 0 1em 0; }
+  </style>
+</head>
+<body>
+  <h1>Últimos Jogos da Premier League</h1>
+  <button onclick="buscarJogos()">Buscar</button>
+  <table id="resultado"></table>
+
+  <script>
+    function formatarData(iso) {
+      const data = new Date(iso);
+      return data.toLocaleString("pt-BR", {
+        day: "2-digit", month: "2-digit", year: "numeric",
+        hour: "2-digit", minute: "2-digit"
+      });
+    }
+
+    function buscarJogos() {
+      fetch("/ultimos-jogos")
+        .then(response => response.json())
+        .then(json => {
+          const jogos = json.response;
+          const tabela = document.getElementById("resultado");
+          tabela.innerHTML = "";
+
+          const header = `
+            <tr>
+              <th>Data</th>
+              <th>Mandante</th>
+              <th>Visitante</th>
+              <th>Placar</th>
+              <th>Estádio</th>
+              <th>Status</th>
+              <th>Ações</th>
+            </tr>`;
+          tabela.innerHTML += header;
+
+          jogos.forEach(jogo => {
+            const fixture = jogo.fixture;
+            const teams = jogo.teams;
+            const goals = jogo.goals;
+            const rowId = `cartoes-${fixture.id}`;
+
+            const row = `
+              <tr>
+                <td>${formatarData(fixture.date)}</td>
+                <td><img src="${teams.home.logo}" alt="" /> ${teams.home.name}</td>
+                <td><img src="${teams.away.logo}" alt="" /> ${teams.away.name}</td>
+                <td>${goals.home} x ${goals.away}</td>
+                <td>${fixture.venue.name}, ${fixture.venue.city}</td>
+                <td>${fixture.status.long}</td>
+                <td><button onclick="verCartoes(${fixture.id}, '${rowId}')">Ver Cartões</button></td>
+              </tr>
+              <tr>
+                <td colspan="7"><div id="${rowId}" class="cartoes"></div></td>
+              </tr>
+            `;
+            tabela.innerHTML += row;
+          });
+        })
+        .catch(err => {
+          document.getElementById("resultado").innerHTML = "<tr><td colspan='7'>Erro ao buscar dados.</td></tr>";
+          console.error(err);
+        });
+    }
+
+    function verCartoes(fixtureId, targetDivId) {
+      const div = document.getElementById(targetDivId);
+      div.textContent = "Carregando...";
+
+      fetch(`/eventos-jogo?fixture=${fixtureId}`)
+        .then(response => response.json())
+        .then(data => {
+          const eventos = data.response.filter(ev => ev.type === "Card");
+          if (eventos.length === 0) {
+            div.textContent = "Nenhum cartão na partida.";
+            return;
+          }
+
+          const html = eventos.map(ev => `
+            <div>
+              <strong>${ev.team.name}</strong> - ${ev.player.name} - ${ev.detail} (${ev.time.elapsed} min)
+            </div>
+          `).join("");
+          div.innerHTML = html;
+        })
+        .catch(err => {
+          div.textContent = "Erro ao buscar cartões.";
+          console.error(err);
+        });
+    }
+  </script>
+</body>
+</html>
