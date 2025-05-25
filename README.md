@@ -27,6 +27,10 @@ O projeto será expandido com uma **Inteligência Artificial** baseada em redes 
 ```bash
 git clone https://github.com/ViniBusculo/api-futebol-app.git
 cd api-futebol-app
-python -m venv venv
-source venv/bin/activate   # ou .\venv\Scripts\activate no Windows
-pip install -r requirements.txt
+mvn clean install
+mvn package
+java -jar .\target\original-demo-1.0-SNAPSHOT.jar
+
+Projeto rodando, acesse "http://localhost:4567/".
+
+
